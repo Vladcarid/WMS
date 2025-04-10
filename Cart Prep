@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cart Prep - Wave Management</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .filters {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+        }
+        .filters label {
+            margin-right: 10px;
+        }
+        .filters input, .filters select {
+            margin-right: 20px;
+            padding: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .wave-row {
+            cursor: pointer;
+            background-color: #fff;
+        }
+        .wave-row:hover {
+            background-color: #f0f0f0;
+        }
+        .order-list {
+            display: none;
+            padding-left: 20px;
+            background-color: #f9f9f9;
+        }
+        .order-row {
+            cursor: pointer;
+            padding: 5px 0;
+        }
+        .order-details {
+            display: none;
+            padding-left: 20px;
+        }
+        .expanded {
+            display: block;
+        }
+        button, select {
+            padding: 5px;
+            margin: 2px;
+            border-radius: 3px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+        }
+        button:hover, select:hover {
+            background-color: #e0e0e0;
+        }
+        .message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+        }
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        .popup-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+        .printed-yes {
+            color: green;
+            font-weight: bold;
+        }
+        .printed-no {
+            color: red;
+            font-weight: bold;
+        }
+        .print-icon {
+            cursor: pointer;
+            color: blue;
+            text-decoration: underline;
+            margin-left: 10px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Cart Prep - Wave Management</h1>
+
+    <!-- Filters Area -->
+    <div class="filters">
+        <h3>Filters</h3>
+        <label>Wave#: <input type="text" id="filter-wave" onkeyup="applyFilters()"></label>
+        <label>Order#: <input type="text" id="filter-order" onkeyup="applyFilters()"></label>
+        <label>Item: <input type="text" id="filter-item" onkeyup="applyFilters()"></label>
+        <label>Order Type: 
+            <select id="filter-order-type" onchange="applyFilters()">
+                <option value="">All</option>
+                <option value="XBAGSL">XBAGSL</option>
+                <option value="PBRPSMSLEC">PBRPSMSLEC</option>
+                <option value="STANDARD">STANDARD</option>
+            </select>
+        </label>
+        <label>Pick Type: 
+            <select id="filter-pick-type" onchange="applyFilters()">
+                <option value="">All</option>
+                <option value="PB">PB</option>
+                <option value="MX">MX</option>
+                <option value="SINGLE">SINGLE</option>
+            </select>
+        </label>
+        <label>Printed: 
+            <select id="filter-printed" onchange="applyFilters()">
+                <option value="">All</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+            </select>
+        </label>
+        <label>Need Approve: 
+            <select id="filter-need-approve" onchange="applyFilters()">
+                <option value="">All</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+            </select>
+        </label>
+        <label>Unassigned Tasks: 
+            <select id="filter-unassigned-tasks" onchange="applyFilters()">
+                <option value="">All</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+            </select>
+        </label>
+    </div>
+
+    <!-- Wave Table -->
+    <table id="wave-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>WaveID</th>
+                <th>Order Type</th>
+                <th>Picktype</th>
+                <th>Number of Orders</th>
+                <th>Carton Types</th>
+                <th>Printed</th>
+                <th>Wave Release</th>
+                <th>Assign Picker</th>
+                <th>Unassign Picker</th>
+                <th>Print</th>
+                <th>Printer Device</th>
+            </tr>
+        </thead>
+        <tbody id="wave-tbody">
+            <!-- Wave Rows will be populated by JavaScript -->
+        </tbody>
+    </table>
+
+    <!-- Message Area -->
+    <div id="message-area"></div>
+
+    <!-- Popup Overlay and Window for Wave Print -->
+    <div id="popup-overlay" class="popup-overlay"></div>
+    <div id="print-popup" class="popup">
+        <h3>Print Options for Wave <span id="popup-wave-id"></span></h3>
+        <div>
+            <label><input type="checkbox" id="print-wave" onchange="updateLabelCount()"> Wave Label (1 label)</label><br>
+            <label><input type="checkbox" id="print-containers" onchange="updateLabelCount()"> Container Labels (<span id="containers-count">0</span> labels)</label><br>
+            <label><input type="checkbox" id="print-shipping" onchange="updateLabelCount()"> Shipping Labels (<span id="shipping-count">0</span> labels)</label><br>
+        </div>
+        <p>Total Labels to Print: <span id="total-labels">0</span></p>
+        <div>
+            <label>Printer: </label>
+            <select id="popup-printer">
+                <option value="printer1">Printer 1</option>
+                <option value="printer2">Printer 2</option>
+            </select>
+        </div>
+        <button onclick="confirmPrint()">Print</button>
+        <button onclick="closePopup()">Cancel</button>
+    </div>
+
+    <!-- Popup for Order Line Print -->
+    <div id="order-print-popup" class="popup">
+        <h3>Print Options for Order <span id="order-popup-order-id"></span> in Wave <span id="order-popup-wave-id"></span></h3>
+        <div>
+            <label><input type="checkbox" id="order-print-container" onchange="updateOrderLabelCount()"> Container Label (1 label, Container ID: <span id="order-container-id"></span>)</label><br>
+            <label><input type="checkbox" id="order-print-shipping" onchange="updateOrderLabelCount()"> Shipping Label (1 label)</label><br>
+        </div>
+        <p>Total Labels to Print: <span id="order-total-labels">0</span></p>
+        <div>
+            <label>Printer: </label>
+            <select id="order-popup-printer">
+                <option value="printer1">Printer 1</option>
+                <option value="printer2">Printer 2</option>
+            </select>
+        </div>
+        <button onclick="confirmOrderPrint()">Print</button>
+        <button onclick="closeOrderPopup()">Cancel</button>
+    </div>
+
+    <script>
+        // Sample data with 15 waves
+        const cartonTypes = ['S-4080', 'S-4137', 'S-4653', 'S-4182', 'S-4503', 'S-23336', 'S-4915', 'S-4702', 'S-22598', 'S-13334', 'ORIGINAL'];
+        const waves = [
+            {
+                waveId: 'WAVE-040825-001',
+                date: '4/8/2025',
+                orderType: 'XBAGSL',
+                picktype: 'PB',
+                numOrders: 4,
+                cartonTypes: cartonTypes[0] + ', ' + cartonTypes[10],
+                printed: false,
+                containers: 4,
+                shippingLabels: 4,
+                picker: '',
+                status: 'Pending Release',
+                orders: [
+                    { orderId: 'SO123', items: [{ itemId: 'ITEM1', quantity: 1, description: 'Widget A' }, { itemId: 'ITEM2', quantity: 2, description: 'Gadget B' }], pickTasks: [{ taskId: 'TASK1', status: 'Pending', location: 'Bin A1' }, { taskId: 'TASK2', status: 'Assigned', location: 'Bin A2' }], cartonDetails: { cartonType: cartonTypes[0], containerId: 'CONT001' } },
+                    { orderId: 'SO124', items: [{ itemId: 'ITEM3', quantity: 3, description: 'Tool C' }], pickTasks: [{ taskId: 'TASK3', status: 'Pending', location: 'Bin B1' }], cartonDetails: { cartonType: cartonTypes[10], containerId: 'CONT002' } },
+                    { orderId: 'SO125', items: [{ itemId: 'ITEM4', quantity: 1, description: 'Device D' }], pickTasks: [{ taskId: 'TASK4', status: 'Completed', location: 'Bin B2' }], cartonDetails: { cartonType: cartonTypes[0], containerId: 'CONT003' } },
+                    { orderId: 'SO126', items: [{ itemId: 'ITEM5', quantity: 2, description: 'Accessory E' }], pickTasks: [{ taskId: 'TASK5', status: 'Pending', location: 'Bin C1' }], cartonDetails: { cartonType: cartonTypes[10], containerId: 'CONT004' } }
+                ]
+            },
+            {
+                waveId: 'WAVE-040825-002',
+                date: '4/8/2025',
+                orderType: 'PBRPSMSLEC',
+                picktype: 'MX',
+                numOrders: 3,
+                cartonTypes: cartonTypes[1] + ', ' + cartonTypes[2],
+                printed: true,
+                containers: 3,
+                shippingLabels: 3,
+                picker: 'picker1',
+                status: 'Released',
+                orders: [
+                    { orderId: 'SO127', items: [{ itemId: 'ITEM6', quantity: 1, description: 'Part F' }], pickTasks: [{ taskId: 'TASK6', status: 'Pending', location: 'Bin D1' }], cartonDetails: { cartonType: cartonTypes[1], containerId: 'CONT005' } },
+                    { orderId: 'SO128', items: [{ itemId: 'ITEM7', quantity: 2, description: 'Component G' }], pickTasks: [{ taskId: 'TASK7', status: 'Assigned', location: 'Bin D2' }], cartonDetails: { cartonType: cartonTypes[2], containerId: 'CONT006' } },
+                    { orderId: 'SO129', items: [{ itemId: 'ITEM8', quantity: 1, description: 'Unit H' }], pickTasks: [{ taskId: 'TASK8', status: 'Completed', location: 'Bin E1' }], cartonDetails: { cartonType: cartonTypes[1], containerId: 'CONT007' } }
+                ]
+            },
+            {
+                waveId: 'WAVE-040825-003',
+                date: '4/8/2025',
+                orderType: 'STANDARD',
+                picktype: 'SINGLE',
+                numOrders: 5,
+                cartonTypes: cartonTypes[3] + ', ' + cartonTypes[4],
+                printed: false,
+                containers: 5,
+                shippingLabels: 5,
+                picker: '',
+                status: 'Pending Release',
+                orders: [
+                    { orderId: 'SO130', items: [{ itemId: 'ITEM9', quantity: 2, description: 'Gear I' }], pickTasks: [{ taskId: 'TASK9', status: 'Pending', location: 'Bin F1' }], cartonDetails: { cartonType: cartonTypes[3], containerId: 'CONT008' } },
+                    { orderId: 'SO131', items: [{ itemId: 'ITEM10', quantity: 1, description: 'Module J' }], pickTasks: [{ taskId: 'TASK10', status: 'Pending', location: 'Bin F2' }], cartonDetails: { cartonType: cartonTypes[4], containerId: 'CONT009' } },
+                    { orderId: 'SO132', items: [{ itemId: 'ITEM11', quantity: 3, description: 'Kit K' }], pickTasks: [{ taskId: 'TASK11', status: 'Assigned', location: 'Bin G1' }], cartonDetails: { cartonType: cartonTypes[3], containerId: 'CONT010' } },
+                    { orderId: 'SO133', items: [{ itemId: 'ITEM12', quantity: 1, description: 'Tool L' }], pickTasks: [{ taskId: 'TASK12', status: 'Completed', location: 'Bin G2' }], cartonDetails: { cartonType: cartonTypes[4], containerId: 'CONT011' } },
+                    { orderId: 'SO134', items: [{ itemId: 'ITEM13', quantity: 2, description: 'Device M' }], pickTasks: [{ taskId: 'TASK13', status: 'Pending', location: 'Bin H1' }], cartonDetails: { cartonType: cartonTypes[3], containerId: 'CONT012' } }
+                ]
+            },
+            {
+                waveId: 'WAVE-040825-004',
+                date: '4/8/2025',
+                orderType: 'XBAGSL',
+                picktype: 'PB',
+                numOrders: 3,
+                cartonTypes: cartonTypes[5],
+                printed: true,
+                containers: 3,
+                shippingLabels: 3,
+                picker: 'picker2',
+                status: 'Released',
+                orders: [
+                    { orderId: 'SO135', items: [{ itemId: 'ITEM14', quantity: 1, description: 'Accessory N' }], pickTasks: [{ taskId: 'TASK14', status: 'Pending', location: 'Bin I1' }], cartonDetails: { cartonType: cartonTypes[5], containerId: 'CONT013' } },
+                    { orderId: 'SO136', items: [{ itemId: 'ITEM15', quantity: 2, description: 'Part O' }], pickTasks: [{ taskId: 'TASK15', status: 'Assigned', location: 'Bin I2' }], cartonDetails: { cartonType: cartonTypes[5], containerId: 'CONT014' } },
+                    { orderId: 'SO137', items: [{ itemId: 'ITEM16', quantity: 1, description: 'Component P' }], pickTasks: [{ taskId: 'TASK16', status: 'Completed', location: 'Bin J1' }], cartonDetails: { cartonType: cartonTypes[5], containerId: 'CONT015' } }
+                ]
+            },
+            {
+                waveId: 'WAVE-040825-005',
+                date: '4/8/2025',
+                orderType: 'PBRPSMSLEC',
+                picktype: 'MX',
+                numOrders: 4,
+                cartonTypes: cartonTypes[6] + ', ' + cartonTypes[10],
+                printed: false,
+                containers: 4,
+                shippingLabels: 4,
+                picker: '',
+                status: 'Pending Release',
+                orders: [
+                    { orderId: 'SO138', items: [{ itemId: 'ITEM17', quantity: 3, description: 'Unit Q' }], pickTasks: [{ taskId: 'TASK17', status: 'Pending', location: 'Bin K1' }], cartonDetails: { cartonType: cartonTypes[6], containerId: 'CONT016' } },
+                    { orderId: 'SO139', items: [{ itemId: 'ITEM18', quantity: 1, description: 'Gear R' }], pickTasks: [{ taskId: 'TASK18', status: 'Assigned', location: 'Bin K2' }], cartonDetails: { cartonType: cartonTypes[10], containerId: 'CONT017' } },
+                    { orderId: 'SO140', items: [{ itemId: 'ITEM19', quantity: 2, description: 'Module S' }], pickTasks: [{ taskId: 'TASK19', status: 'Completed', location: 'Bin L1' }], cartonDetails: { cartonType: cartonTypes[6], containerId: 'CONT018' } },
+                    { orderId: 'SO141', items: [{ itemId: 'ITEM20', quantity: 1, description: 'Kit T' }], pickTasks: [{ taskId: 'TASK20', status: 'Pending', location: 'Bin L2' }], cartonDetails: { cartonType: cartonTypes[10], containerId: 'CONT019' } }
+                ]
+            },
+            {
+                waveId: 'WAVE-040825-006',
+                date: '4/8/2025',
+                orderType: 'STANDARD',
+                picktype: 'SINGLE',
+                numOrders: 3,
+                cartonTypes: cartonTypes[7],
+                printed: true,
+                containers: 3,
+                shippingLabels: 3,
+                picker: 'picker1',
+                status: 'Released',
+                orders: [
+                    { orderId: 'SO142', items: [{ itemId: 'ITEM21', quantity: 1, description: 'Tool U' }], pickTasks: [{ taskId: 'TASK21', status: 'Pending', location: 'Bin M1' }], cartonDetails: { cartonType: cartonTypes[7], containerId: 'CONT020' } },
+                    { orderId: 'SO143', items: [{ itemId: 'ITEM22', quantity: 2, description: 'Device V' }], pickTasks: [{ taskId: 'TASK22', status: 'Assigned', location: 'Bin M2' }], cartonDetails: { cartonType: cartonTypes[7], containerId: 'CONT021' } },
+                    { orderId: 'SO144', items: [{ itemId: 'ITEM23', quantity: 1, description: 'Accessory W' }], pickTasks: [{ taskId: 'TASK23', status: 'Completed', location: 'Bin N1' }], cartonDetails: { cartonType: cartonTypes[7], containerId: 'CONT022' } }
+                ]
+            },
+            {
+                waveId: 'WAVE-040825-007',
+                date: '4/8/2025',
+                orderType: 'XBAGSL',
+                picktype: 'PB',
+                numOrders: 5,
+                cartonTypes: cartonTypes[8] + ', ' + cartonTypes[9],
+                printed: false,
+                containers: 5,
+                shippingLabels: 5,
+                picker: '',
+                status: 'Pending Release',
+                orders: [
+                    { orderId: 'SO145', items: [{ itemId: 'ITEM24', quantity: 2, description: 'Part X' }], pickTasks: [{ taskId: 'TASK24', status: 'Pending', location: 'Bin O1' }], cartonDetails: { cartonType: cartonTypes[8], containerId: 'CONT023' } },
+                    { orderId: 'SO146', items: [{ itemId: 'ITEM25', quantity: 1, description: 'Component Y' }], pickTasks: [{ taskId: 'TASK25', status: 'Assigned', location: 'Bin O2' }], cartonDetails: { cartonType: cartonTypes[9], containerId: 'CONT024' } },
+                    { orderId: 'SO147', items: [{ itemId: 'ITEM26', quantity: 3, description: 'Unit Z' }], pickTasks: [{ taskId: 'TASK26', status: 'Completed', location: 'Bin P1' }], cartonDetails: { cartonType: cartonTypes[8], containerId: 'CONT025' } },
+                    { orderId: 'SO148', items: [{ itemId: 'ITEM27', quantity: 1, description: 'Gear AA' }], pickTasks: [{ taskId: 'TASK27', status: 'Pending', location: 'Bin P2' }], cartonDetails: { cartonType: cartonTypes[9], containerId: 'CONT026' } },
+                    { orderId: 'SO149', items: [{ itemId: 'ITEM28', quantity: 2, description: 'Module AB' }], pickTasks: [{ taskId: 'TASK28', status: 'Assigned', location: 'Bin Q1' }], cartonDetails: { cartonType: cartonTypes[8], containerId: 'CONT027' } }
+                ]
+            },
+            {
+                waveId: 'WAVE-040825-008',
+                date: '4/8/2025',
+                orderType: 'PBRPSMSLEC',
+                picktype: 'MX',
+                numOrders: 3,
+                cartonTypes: cartonTypes[0],
+                printed: true,
+                containers: 3,
+                shippingLabels: 3,
+                picker: 'picker2',
+                status: 'Released',
+                orders: [
+                    { orderId: 'SO150', items: [{ itemId: 'ITEM29', quantity: 1, description: 'Kit AC' }], pickTasks: [{ taskId: 'TASK29', status: 'Pending', location: 'Bin R1' }], cartonDetails: { cartonType: cartonTypes[0], containerId: 'CONT028' } },
+                    { orderId: 'SO151', items: [{ itemId: 'ITEM30', quantity: 2, description: 'Tool AD' }], pickTasks: [{ taskId: 'TASK30', status: 'Assigned', location: 'Bin R2' }], cartonDetails: { cartonType: cartonTypes[0], containerId: 'CONT029' } },
+                    { orderId: 'SO152', items: [{ itemId: 'ITEM31', quantity: 1, description: 'Device AE' }], pickTasks: [{ taskId: 'TASK31', status: 'Completed', location: 'Bin S1' }], cartonDetails: { cartonType: cartonTypes[0], containerId: 'CONT030' } }
+                ]
+            },
+            {
+                waveId: 'WAVE-040825-009',
+                date: '4/8/2025',
+                orderType: 'STANDARD',
+                picktype: 'SINGLE',
+                numOrders: 4,
+                cartonTypes: cartonTypes[1] + ', ' + cartonTypes[10],
+                printed: false,
+                containers: 4,
+                shippingLabels: 4,
+                picker: '',
+                status: 'Pending Release',
+                orders: [
+                    { orderId: 'SO153', items: [{ itemId: 'ITEM32', quantity: 3, description: 'Accessory AF' }], pickTasks: [{ taskId: 'TASK32', status: 'Pending', location: 'Bin T1' }], cartonDetails: { cartonType: cartonTypes[1], containerId: 'CONT031' } },
+                    { orderId: 'SO154', items: [{ itemId: 'ITEM33', quantity: 1, description: 'Part AG' }], pickTasks: [{ taskId: 'TASK33', status: 'Assigned', location: 'Bin T2' }], cartonDetails: { cartonType: cartonTypes[10], containerId: 'CONT032' } },
+                    { orderId: 'SO155', items: [{ itemId: 'ITEM34', quantity: 2, description: 'Component AH' }], pickTasks: [{ taskId: 'TASK34', status: 'Completed', location: 'Bin U1' }], cartonDetails: { cartonType: cartonTypes[1], containerId: 'CONT033' } },
+                    { orderId: 'SO156', items: [{ itemId: 'ITEM35', quantity: 1, description: 'Unit AI' }], pickTasks: [{ taskId: 'TASK35', status: 'Pending', location: 'Bin U2' }], cartonDetails: { cartonType: cartonTypes[10], containerId: 'CONT034' } }
+                ]
+            },
+            {
+                waveId: 'WAVE-040825-010',
+                date: '4/8/2025',
+                orderType: 'XBAGSL',
+                picktype: 'PB',
+                numOrders: 3,
+                cartonTypes: cartonTypes[2],
+                printed: true,
+                containers: 3,
+                shippingLabels: 3,
+                picker: 'picker1',
+                status: 'Released',
+                orders: [
+                    { orderId: 'SO157', items: [{ itemId: 'ITEM36', quantity: 1, description: 'Gear AJ' }], pickTasks: [{ taskId: 'TASK36', status: 'Pending', location: 'Bin V1' }], cartonDetails: { cartonType: cartonTypes[2], containerId: 'CONT035' } },
+                    { orderId: 'SO158', items: [{ itemId: 'ITEM37', quantity: 2, description: 'Module AK' }], pickTasks: [{ taskId: 'TASK37', status: 'Assigned', location: 'Bin V2' }], cartonDetails: { cartonType: cartonTypes[2], containerId: 'CONT036' } },
+                    { orderId: 'SO159', items: [{ itemId: 'ITEM38', quantity: 1, description: 'Kit AL' }], pickTasks: [{ taskId: 'TASK38', status: 'Completed', location: 'Bin W1' }], cartonDetails: { cartonType: cartonTypes[2], containerId: 'CONT037' } }
+                ]
+            },
+            {
+                waveId: 'WAVE-040825-011',
+                date: '4/8/2025',
+                orderType: 'PBRPSMSLEC',
+                picktype: 'MX',
+                numOrders: 5,
+                cartonTypes: cartonTypes[3] + ', ' + cartonTypes[4],
+                printed: false,
+                containers: 5,
+                shippingLabels: 5,
+                picker: '',
+                status: 'Pending Release',
+                orders: [
+                    { orderId: 'SO160', items: [{ itemId: 'ITEM39', quantity: 2, description: 'Tool AM' }], pickTasks: [{ taskId: 'TASK39', status: 'Pending', location: 'Bin X1' }], cartonDetails: { cartonType: cartonTypes[3], containerId: 'CONT038' } },
+                    { orderId: 'SO161', items: [{ itemId: 'ITEM40', quantity: 1, description: 'Device AN' }], pickTasks: [{ taskId: 'TASK40', status: 'Assigned', location: 'Bin X2' }], cartonDetails: { cartonType: cartonTypes[4], containerId: 'CONT039' } },
+                    { orderId: 'SO162', items: [{ itemId: 'ITEM41', quantity: 3, description: 'Accessory AO' }], pickTasks: [{ taskId: 'TASK41', status: 'Completed', location: 'Bin Y1' }], cartonDetails: { cartonType: cartonTypes[3], containerId: 'CONT040' } },
+                    { orderId: 'SO163', items: [{ itemId: 'ITEM42', quantity: 1, description: 'Part AP' }], pickTasks: [{ taskId: 'TASK42', status: 'Pending', location: 'Bin Y2' }], cartonDetails: { cartonType: cartonTypes[4], containerId: 'CONT041' } },
+                    { orderId: 'SO164', items: [{ itemId: 'ITEM43', quantity: 2, description: 'Component AQ' }], pickTasks: [{ taskId: 'TASK43', status: 'Assigned', location: 'Bin Z1' }], cartonDetails: { cartonType: cartonTypes[3], containerId: 'CONT042' } }
+                ]
+            },
+            {
+                waveId: 'WAVE-040825-012',
+                date: '4/8/2025',
+                orderType: 'STANDARD',
+                picktype: 'SINGLE',
+                numOrders: 3,
+                cartonTypes: cartonTypes[5],
+                printed: true,
+                containers: 3,
+                shippingLabels: 3,
+                picker: 'picker2',
+                status: 'Released',
+                orders: [
+                    { orderId: 'SO165', items: [{ itemId: 'ITEM44', quantity: 1, description: 'Unit AR' }], pickTasks: [{ taskId: 'TASK44', status: 'Pending', location: 'Bin AA1' }], cartonDetails: { cartonType: cartonTypes[5], containerId: 'CONT043' } },
+                    { orderId: 'SO166', items: [{ itemId: 'ITEM45', quantity: 2, description: 'Gear AS' }], pickTasks: [{ taskId: 'TASK45', status: 'Assigned', location: 'Bin AA2' }], cartonDetails: { cartonType: cartonTypes[5], containerId: 'CONT044' } },
+                    { orderId: 'SO167', items: [{ itemId: 'ITEM46', quantity: 1, description: 'Module AT' }], pickTasks: [{ taskId: 'TASK46', status: 'Completed', location: 'Bin AB1' }], cartonDetails: { cartonType: cartonTypes[5], containerId: 'CONT045' } }
+                ]
+            },
+            {
+                waveId: 'WAVE-040825-013',
+                date: '4/8/2025',
+                orderType: 'XBAGSL',
+                picktype: 'PB',
+                numOrders: 4,
+                cartonTypes: cartonTypes[6] + ', ' + cartonTypes[10],
+                printed: false,
+                containers: 4,
+                shippingLabels: 4,
+                picker: '',
+                status: 'Pending Release',
+                orders: [
+                    { orderId: 'SO168', items: [{ itemId: 'ITEM47', quantity: 3, description: 'Kit AU' }], pickTasks: [{ taskId: 'TASK47', status: 'Pending', location: 'Bin AC1' }], cartonDetails: { cartonType: cartonTypes[6], containerId: 'CONT046' } },
+                    { orderId: 'SO169', items: [{ itemId: 'ITEM48', quantity: 1, description: 'Tool AV' }], pickTasks: [{ taskId: 'TASK48', status: 'Assigned', location: 'Bin AC2' }], cartonDetails: { cartonType: cartonTypes[10], containerId: 'CONT047' } },
+                    { orderId: 'SO170', items: [{ itemId: 'ITEM49', quantity: 2, description: 'Device AW' }], pickTasks: [{ taskId: 'TASK49', status: 'Completed', location: 'Bin AD1' }], cartonDetails: { cartonType: cartonTypes[6], containerId: 'CONT048' } },
+                    { orderId: 'SO171', items: [{ itemId: 'ITEM50', quantity: 1, description: 'Accessory AX' }], pickTasks: [{ taskId: 'TASK50', status: 'Pending', location: 'Bin AD2' }], cartonDetails: { cartonType: cartonTypes[10], containerId: 'CONT049' } }
+                ]
+            },
+            {
+                waveId: 'WAVE-040825-014',
+                date: '4/8/2025',
+                orderType: 'PBRPSMSLEC',
+                picktype: 'MX',
+                numOrders: 3,
+                cartonTypes: cartonTypes[7],
+                printed: true,
+                containers: 3,
+                shippingLabels: 3,
+                picker: 'picker1',
+                status: 'Released',
+                orders: [
+                    { orderId: 'SO172', items: [{ itemId: 'ITEM51', quantity: 1, description: 'Part AY' }], pickTasks: [{ taskId: 'TASK51', status: 'Pending', location: 'Bin AE1' }], cartonDetails: { cartonType: cartonTypes[7], containerId: 'CONT050' } },
+                    { orderId: 'SO173', items: [{ itemId: 'ITEM52', quantity: 2, description: 'Component AZ' }], pickTasks: [{ taskId: 'TASK52', status: 'Assigned', location: 'Bin AE2' }], cartonDetails: { cartonType: cartonTypes[7], containerId: 'CONT051' } },
+                    { orderId: 'SO174', items: [{ itemId: 'ITEM53', quantity: 1, description: 'Unit BA' }], pickTasks: [{ taskId: 'TASK53', status: 'Completed', location: 'Bin AF1' }], cartonDetails: { cartonType: cartonTypes[7], containerId: 'CONT052' } }
+                ]
+            },
+            {
+                waveId: 'WAVE-040825-015',
+                date: '4/8/2025',
+                orderType: 'STANDARD',
+                picktype: 'SINGLE',
+                numOrders: 5,
+                cartonTypes: cartonTypes[8] + ', ' + cartonTypes[9],
+                printed: false,
+                containers: 5,
+                shippingLabels: 5,
+                picker: '',
+                status: 'Pending Release',
+                orders: [
+                    { orderId: 'SO175', items: [{ itemId: 'ITEM54', quantity: 2, description: 'Gear BB' }], pickTasks: [{ taskId: 'TASK54', status: 'Pending', location: 'Bin AG1' }], cartonDetails: { cartonType: cartonTypes[8], containerId: 'CONT053' } },
+                    { orderId: 'SO176', items: [{ itemId: 'ITEM55', quantity: 1, description: 'Module BC' }], pickTasks: [{ taskId: 'TASK55', status: 'Assigned', location: 'Bin AG2' }], cartonDetails: { cartonType: cartonTypes[9], containerId: 'CONT054' } },
+                    { orderId: 'SO177', items: [{ itemId: 'ITEM56', quantity: 3, description: 'Kit BD' }], pickTasks: [{ taskId: 'TASK56', status: 'Completed', location: 'Bin AH1' }], cartonDetails: { cartonType: cartonTypes[8], containerId: 'CONT055' } },
+                    { orderId: 'SO178', items: [{ itemId: 'ITEM57', quantity: 1, description: 'Tool BE' }], pickTasks: [{ taskId: 'TASK57', status: 'Pending', location: 'Bin AH2' }], cartonDetails: { cartonType: cartonTypes[9], containerId: 'CONT056' } },
+                    { orderId: 'SO179', items: [{ itemId: 'ITEM58', quantity: 2, description: 'Device BF' }], pickTasks: [{ taskId: 'TASK58', status: 'Assigned', location: 'Bin AI1' }], cartonDetails: { cartonType: cartonTypes[8], containerId: 'CONT057' } }
+                ]
+            }
+        ];
+
+        let expandedWave = null;
+        let currentWaveId = null;
+        let currentOrderId = null;
+        const defaultPrinter = 'printer1';
+        let filteredWaves = [...waves];
+
+        // Initialize the page
+        $(document).ready(function() {
+            renderWaves();
+        });
+
+        // Render waves table
+        function renderWaves() {
+            const tbody = $('#wave-tbody');
+            tbody.empty();
+
+            filteredWaves.forEach((wave, index) => {
+                const row = `
+                    <tr class="wave-row" data-wave-id="${wave.waveId}">
+                        <td>${wave.date}</td>
+                        <td>
+                            ${wave.waveId}
+                            ${wave.status !== 'Released' ? `<button onclick="approveWave('${wave.waveId}')">Approve Wave</button>` : ''}
+                        </td>
+                        <td>${wave.orderType}</td>
+                        <td>${wave.picktype}</td>
+                        <td>${wave.numOrders}</td>
+                        <td>${wave.cartonTypes}</td>
+                        <td class="printed-${wave.printed ? 'yes' : 'no'}">${wave.printed ? 'Yes' : 'No'}</td>
+                        <td id="status-${wave.waveId}">${wave.status}</td>
+                        <td>
+                            <select id="picker-${wave.waveId}" onchange="assignPicker('${wave.waveId}', this.value)">
+                                <option value="">Select Picker</option>
+                                <option value="picker1">Picker 1</option>
+                                <option value="picker2">Picker 2</option>
+                            </select>
+                        </td>
+                        <td>
+                            <button onclick="unassignPicker('${wave.waveId}')">Unassign Picker</button>
+                        </td>
+                        <td>
+                            <button class="wave-print-btn ${wave.status !== 'Released' ? 'hidden' : ''}" onclick="openPrintPopup('${wave.waveId}')">Print</button>
+                        </td>
+                        <td>
+                            <select id="printer-${wave.waveId}" onchange="updateDefaultPrinter('${wave.waveId}', this.value)">
+                                <option value="printer1" ${defaultPrinter === 'printer1' ? 'selected' : ''}>Printer 1</option>
+                                <option value="printer2" ${defaultPrinter === 'printer2' ? 'selected' : ''}>Printer 2</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="12">
+                            <div id="orders-${wave.waveId}" class="order-list">
+                                ${renderOrders(wave.waveId, wave.orders, wave.picker, wave.status)}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+
+                if (wave.picker) {
+                    $(`#picker-${wave.waveId}`).val(wave.picker);
+                }
+            });
+
+            $('.wave-row').on('click', function(e) {
+                if ($(e.target).is('button') || $(e.target).is('select') || $(e.target).is('option') || $(e.target).hasClass('print-icon')) return;
+                const waveId = $(this).data('wave-id');
+                toggleWave(waveId);
+            });
+
+            $('.order-row').on('click', function(e) {
+                if ($(e.target).hasClass('print-icon')) return;
+                const waveId = $(this).data('wave-id');
+                const orderId = $(this).data('order-id');
+                toggleOrder(waveId, orderId);
+            });
+        }
+
+        // Render orders for a wave
+        function renderOrders(waveId, orders, picker, waveStatus) {
+            let html = '';
+            orders.forEach(order => {
+                html += `
+                    <div class="order-row" data-wave-id="${waveId}" data-order-id="${order.orderId}">
+                        Order: ${order.orderId}
+                        <span class="print-icon ${waveStatus !== 'Released' ? 'hidden' : ''}" onclick="openOrderPrintPopup('${waveId}', '${order.orderId}')">[Print]</span>
+                    </div>
+                    <div id="details-${waveId}-${order.orderId}" class="order-details">
+                        <strong>Items:</strong>
+                        <ul>
+                            ${order.items.map(item => `<li>${item.description} (Item ID: ${item.itemId}, Quantity: ${item.quantity})</li>`).join('')}
+                        </ul>
+                        <strong>Pick Tasks:</strong>
+                        <ul>
+                            ${order.pickTasks.map(task => `<li>Task: ${task.taskId} - Status: ${task.status} - Location: ${task.location} - Picker: ${picker || 'None'}</li>`).join('')}
+                        </ul>
+                        <strong>Carton Details:</strong>
+                        <ul>
+                            <li>Carton Type: ${order.cartonDetails.cartonType}</li>
+                            <li>Container ID: ${order.cartonDetails.containerId}</li>
+                        </ul>
+                    </div>
+                `;
+            });
+            return html;
+        }
+
+        // Toggle wave expansion
+        function toggleWave(waveId) {
+            if (expandedWave && expandedWave !== waveId) {
+                $(`#orders-${expandedWave}`).hide();
+                $(`.order-details`).hide();
+            }
+
+            const orderList = $(`#orders-${waveId}`);
+            if (orderList.is(':visible')) {
+                orderList.hide();
+                expandedWave = null;
+            } else {
+                orderList.show();
+                expandedWave = waveId;
+            }
+        }
+
+        // Toggle order expansion
+        function toggleOrder(waveId, orderId) {
+            const details = $(`#details-${waveId}-${orderId}`);
+            if (details.is(':visible')) {
+                details.hide();
+            } else {
+                $(`#orders-${waveId} .order-details`).hide();
+                details.show();
+            }
+        }
+
+        // Apply filters
+        function applyFilters() {
+            const waveFilter = $('#filter-wave').val().toLowerCase();
+            const orderFilter = $('#filter-order').val().toLowerCase();
+            const itemFilter = $('#filter-item').val().toLowerCase();
+            const orderTypeFilter = $('#filter-order-type').val();
+            const pickTypeFilter = $('#filter-pick-type').val();
+            const printedFilter = $('#filter-printed').val();
+            const needApproveFilter = $('#filter-need-approve').val();
+            const unassignedTasksFilter = $('#filter-unassigned-tasks').val();
+
+            filteredWaves = waves.filter(wave => {
+                const matchesWave = !waveFilter || wave.waveId.toLowerCase().includes(waveFilter);
+                const matchesOrder = !orderFilter || wave.orders.some(order => order.orderId.toLowerCase().includes(orderFilter));
+                const matchesItem = !itemFilter || wave.orders.some(order => order.items.some(item => item.itemId.toLowerCase().includes(itemFilter) || item.description.toLowerCase().includes(itemFilter)));
+                const matchesOrderType = !orderTypeFilter || wave.orderType === orderTypeFilter;
+                const matchesPickType = !pickTypeFilter || wave.picktype === pickTypeFilter;
+                const matchesPrinted = !printedFilter || (printedFilter === 'yes' && wave.printed) || (printedFilter === 'no' && !wave.printed);
+                const matchesNeedApprove = !needApproveFilter || (needApproveFilter === 'yes' && wave.status !== 'Released') || (needApproveFilter === 'no' && wave.status === 'Released');
+
+                const hasUnassignedTasks = wave.orders.some(order => 
+                    order.pickTasks.some(task => task.status === 'Pending' && !wave.picker)
+                );
+                const matchesUnassignedTasks = !unassignedTasksFilter || 
+                    (unassignedTasksFilter === 'yes' && hasUnassignedTasks) || 
+                    (unassignedTasksFilter === 'no' && !hasUnassignedTasks);
+
+                return matchesWave && matchesOrder && matchesItem && matchesOrderType && matchesPickType && matchesPrinted && matchesNeedApprove && matchesUnassignedTasks;
+            });
+
+            renderWaves();
+        }
+
+        // Approve wave
+        function approveWave(waveId) {
+            const wave = waves.find(w => w.waveId === waveId);
+            if (wave.status === 'Released') {
+                showMessage('Error', 'Wave ' + waveId + ' is already released.', 'error');
+                return;
+            }
+
+            wave.status = 'Released';
+            renderWaves();
+            showMessage('Success', 'Wave ' + waveId + ' approved.', 'success');
+        }
+
+        // Assign picker
+        function assignPicker(waveId, picker) {
+            if (!picker) return;
+            const wave = waves.find(w => w.waveId === waveId);
+            wave.picker = picker;
+            renderWaves();
+            showMessage('Success', 'Picker ' + picker + ' assigned to ' + waveId, 'success');
+        }
+
+        // Unassign picker
+        function unassignPicker(waveId) {
+            const wave = waves.find(w => w.waveId === waveId);
+            wave.picker = '';
+            $(`#picker-${waveId}`).val('');
+            renderWaves();
+            showMessage('Success', 'Picker unassigned from ' + waveId, 'success');
+        }
+
+        // Open print popup for wave
+        function openPrintPopup(waveId) {
+            const wave = waves.find(w => w.waveId === waveId);
+            if (wave.status !== 'Released') {
+                showMessage('Error', 'Wave ' + waveId + ' must be approved before printing.', 'error');
+                return;
+            }
+
+            currentWaveId = waveId;
+            $('#popup-wave-id').text(waveId);
+            $('#containers-count').text(wave.containers);
+            $('#shipping-count').text(wave.shippingLabels);
+            $('#print-wave').prop('checked', true);
+            $('#print-containers').prop('checked', true);
+            $('#print-shipping').prop('checked', true);
+            updateLabelCount();
+
+            const tablePrinter = $(`#printer-${waveId}`).val();
+            $('#popup-printer').val(tablePrinter);
+
+            $('#popup-overlay').show();
+            $('#print-popup').show();
+        }
+
+        // Close wave print popup
+        function closePopup() {
+            $('#popup-overlay').hide();
+            $('#print-popup').hide();
+            currentWaveId = null;
+        }
+
+        // Update label count in wave print popup
+        function updateLabelCount() {
+            let total = 0;
+            const wave = waves.find(w => w.waveId === currentWaveId);
+            if ($('#print-wave').is(':checked')) total += 1;
+            if ($('#print-containers').is(':checked')) total += wave.containers;
+            if ($('#print-shipping').is(':checked')) total += wave.shippingLabels;
+            $('#total-labels').text(total);
+        }
+
+        // Confirm wave print
+        function confirmPrint() {
+            const printer = $('#popup-printer').val();
+            if (!printer) {
+                showMessage('Error', 'Please select a printer.', 'error');
+                return;
+            }
+
+            const printTypes = [];
+            if ($('#print-wave').is(':checked')) printTypes.push('Wave Label');
+            if ($('#print-containers').is(':checked')) printTypes.push('Container Labels');
+            if ($('#print-shipping').is(':checked')) printTypes.push('Shipping Labels');
+
+            if (printTypes.length === 0) {
+                showMessage('Error', 'Please select at least one print option.', 'error');
+                return;
+            }
+
+            const wave = waves.find(w => w.waveId === currentWaveId);
+            wave.printed = true;
+            renderWaves();
+
+            showMessage('Success', `Printed ${printTypes.join(', ')} for wave ${currentWaveId} on ${printer}`, 'success');
+            closePopup();
+        }
+
+        // Open print popup for order line
+        function openOrderPrintPopup(waveId, orderId) {
+            const wave = waves.find(w => w.waveId === waveId);
+            if (wave.status !== 'Released') {
+                showMessage('Error', 'Wave ' + waveId + ' must be approved before printing.', 'error');
+                return;
+            }
+
+            const order = wave.orders.find(o => o.orderId === orderId);
+            currentWaveId = waveId;
+            currentOrderId = orderId;
+            $('#order-popup-wave-id').text(waveId);
+            $('#order-popup-order-id').text(orderId);
+            $('#order-container-id').text(order.cartonDetails.containerId);
+            $('#order-print-container').prop('checked', false);
+            $('#order-print-shipping').prop('checked', false);
+            updateOrderLabelCount();
+
+            const tablePrinter = $(`#printer-${waveId}`).val();
+            $('#order-popup-printer').val(tablePrinter);
+
+            $('#popup-overlay').show();
+            $('#order-print-popup').show();
+        }
+
+        // Close order print popup
+        function closeOrderPopup() {
+            $('#popup-overlay').hide();
+            $('#order-print-popup').hide();
+            currentWaveId = null;
+            currentOrderId = null;
+        }
+
+        // Update label count in order print popup
+        function updateOrderLabelCount() {
+            let total = 0;
+            if ($('#order-print-container').is(':checked')) total += 1; // 1 container label per order
+            if ($('#order-print-shipping').is(':checked')) total += 1; // 1 shipping label per order
+            $('#order-total-labels').text(total);
+        }
+
+        // Confirm order print
+        function confirmOrderPrint() {
+            const printer = $('#order-popup-printer').val();
+            if (!printer) {
+                showMessage('Error', 'Please select a printer.', 'error');
+                return;
+            }
+
+            const printTypes = [];
+            if ($('#order-print-container').is(':checked')) printTypes.push(`Container Label (Container ID: ${$('#order-container-id').text()})`);
+            if ($('#order-print-shipping').is(':checked')) printTypes.push('Shipping Label');
+
+            if (printTypes.length === 0) {
+                showMessage('Error', 'Please select at least one print option.', 'error');
+                return;
+            }
+
+            const wave = waves.find(w => w.waveId === currentWaveId);
+            wave.printed = true; // Mark wave as printed since at least one order has been printed
+            renderWaves();
+
+            showMessage('Success', `Printed ${printTypes.join(', ')} for order ${currentOrderId} in wave ${currentWaveId} on ${printer}`, 'success');
+            closeOrderPopup();
+        }
+
+        // Update default printer in table
+        function updateDefaultPrinter(waveId, printer) {
+            console.log(`Updated printer for wave ${waveId} to ${printer}`);
+        }
+
+        // Show message
+        function showMessage(title, msg, type) {
+            const messageArea = $('#message-area');
+            messageArea.html(`<div class="message ${type}">${title}: ${msg}</div>`);
+            setTimeout(() => messageArea.empty(), 3000);
+        }
+    </script>
+</body>
+</html>
