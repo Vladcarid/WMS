@@ -7,97 +7,189 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 24px;
+            background-color: #f5f7fa;
+            color: #1a202c;
         }
+
         h1 {
-            color: #333;
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 24px;
         }
+
         .filters {
-            margin-bottom: 20px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            background-color: #f9f9f9;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
         }
+
         .filters label {
-            margin-right: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #4a5568;
+            margin-right: 8px;
         }
+
         .filters input, .filters select {
-            margin-right: 20px;
-            padding: 5px;
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #1a202c;
+            background-color: #ffffff;
+            transition: border-color 0.2s;
         }
+
+        .filters input:focus, .filters select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .filters button {
+            padding: 8px 16px;
+            background-color: #e2e8f0;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1a202c;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .filters button:hover {
+            background-color: #cbd5e1;
+        }
+
         table {
             width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
+            border-collapse: separate;
+            border-spacing: 0;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
         }
+
         th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
+            padding: 12px 16px;
             text-align: left;
+            border-bottom: 1px solid #e2e8f0;
         }
+
         th {
-            background-color: #f4f4f4;
-            color: #333;
+            background-color: #f7fafc;
+            font-size: 14px;
+            font-weight: 600;
+            color: #4a5568;
+            text-transform: uppercase;
         }
+
+        td {
+            font-size: 14px;
+            color: #1a202c;
+        }
+
         .wave-row {
             cursor: pointer;
-            background-color: #fff;
+            transition: background-color 0.2s;
         }
+
         .wave-row:hover {
-            background-color: #f0f0f0;
+            background-color: #f7fafc;
         }
+
         .order-list {
             display: none;
-            padding-left: 20px;
-            background-color: #f9f9f9;
+            padding: 16px 24px;
+            background-color: #f9fafb;
         }
-        .order-row {
-            cursor: pointer;
-            padding: 5px 0;
-        }
+
         .order-details {
             display: none;
-            padding-left: 20px;
+            padding: 12px 24px;
+            background-color: #ffffff;
+            border-left: 4px solid #3b82f6;
+            margin: 8px 0;
         }
+
         .expanded {
             display: block;
         }
+
         button, select {
-            padding: 5px;
-            margin: 2px;
-            border-radius: 3px;
-            border: 1px solid #ccc;
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #1a202c;
+            background-color: #ffffff;
             cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
         }
+
         button:hover, select:hover {
-            background-color: #e0e0e0;
+            background-color: #f7fafc;
+            border-color: #cbd5e1;
         }
+
+        .message-area {
+            position: fixed;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 600px;
+            z-index: 1000;
+            text-align: center;
+        }
+
         .message {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 3px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            display: inline-block;
         }
+
         .message.success {
             background-color: #d4edda;
             color: #155724;
         }
+
         .message.error {
             background-color: #f8d7da;
             color: #721c24;
         }
+
         .popup {
             display: none;
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background-color: white;
-            padding: 20px;
-            border: 1px solid #ccc;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background-color: #ffffff;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             z-index: 1000;
+            width: 400px;
+            max-width: 90%;
         }
+
         .popup-overlay {
             display: none;
             position: fixed;
@@ -108,31 +200,92 @@
             background: rgba(0,0,0,0.5);
             z-index: 999;
         }
+
+        .popup h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a202c;
+            margin-bottom: 16px;
+        }
+
+        .popup label {
+            font-size: 14px;
+            color: #4a5568;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .popup input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        .popup select {
+            width: 100%;
+            margin-bottom: 16px;
+        }
+
+        .popup button {
+            width: 100%;
+            margin-top: 8px;
+            padding: 10px;
+            font-weight: 500;
+        }
+
+        .popup button:first-of-type {
+            background-color: #3b82f6;
+            color: #ffffff;
+            border: none;
+        }
+
+        .popup button:first-of-type:hover {
+            background-color: #2563eb;
+        }
+
+        .popup button:last-of-type {
+            background-color: #e2e8f0;
+            border: none;
+        }
+
+        .popup button:last-of-type:hover {
+            background-color: #cbd5e1;
+        }
+
         .printed-yes {
-            color: green;
-            font-weight: bold;
+            color: #28a745;
+            font-weight: 600;
         }
+
         .printed-no {
-            color: red;
-            font-weight: bold;
+            color: #dc3545;
+            font-weight: 600;
         }
+
         .print-icon {
             cursor: pointer;
-            color: blue;
-            text-decoration: underline;
-            margin-left: 10px;
+            color: #3b82f6;
+            text-decoration: none;
+            margin-left: 8px;
+            font-size: 14px;
         }
+
+        .print-icon:hover {
+            text-decoration: underline;
+        }
+
         .hidden {
             display: none;
         }
     </style>
 </head>
 <body>
+    <!-- Message Area (Moved to Top) -->
+    <div id="message-area" class="message-area"></div>
+
     <h1>Cart Prep - Wave Management</h1>
 
     <!-- Filters Area -->
     <div class="filters">
-        <h3>Filters</h3>
+        <h3 style="font-size: 18px; font-weight: 600; margin: 0 16px 0 0;">Filters</h3>
         <label>Wave#: <input type="text" id="filter-wave" onkeyup="applyFilters()"></label>
         <label>Order#: <input type="text" id="filter-order" onkeyup="applyFilters()"></label>
         <label>Item: <input type="text" id="filter-item" onkeyup="applyFilters()"></label>
@@ -173,6 +326,7 @@
                 <option value="no">No</option>
             </select>
         </label>
+        <button onclick="clearFilters()">Clear All</button>
     </div>
 
     <!-- Wave Table -->
@@ -198,15 +352,11 @@
         </tbody>
     </table>
 
-    <!-- Message Area -->
-    <div id="message-area"></div>
-
     <!-- Popup Overlay and Window for Wave Print -->
     <div id="popup-overlay" class="popup-overlay"></div>
     <div id="print-popup" class="popup">
         <h3>Print Options for Wave <span id="popup-wave-id"></span></h3>
         <div>
-            <label><input type="checkbox" id="print-wave" onchange="updateLabelCount()"> Wave Label (1 label)</label><br>
             <label><input type="checkbox" id="print-containers" onchange="updateLabelCount()"> Container Labels (<span id="containers-count">0</span> labels)</label><br>
             <label><input type="checkbox" id="print-shipping" onchange="updateLabelCount()"> Shipping Labels (<span id="shipping-count">0</span> labels)</label><br>
         </div>
@@ -538,6 +688,10 @@
         // Initialize the page
         $(document).ready(function() {
             renderWaves();
+            // Ensure waves are visible by default
+            filteredWaves.forEach(wave => {
+                toggleWave(wave.waveId);
+            });
         });
 
         // Render waves table
@@ -639,16 +793,15 @@
 
         // Toggle wave expansion
         function toggleWave(waveId) {
-            if (expandedWave && expandedWave !== waveId) {
-                $(`#orders-${expandedWave}`).hide();
-                $(`.order-details`).hide();
-            }
-
             const orderList = $(`#orders-${waveId}`);
             if (orderList.is(':visible')) {
                 orderList.hide();
                 expandedWave = null;
             } else {
+                if (expandedWave && expandedWave !== waveId) {
+                    $(`#orders-${expandedWave}`).hide();
+                    $(`.order-details`).hide();
+                }
                 orderList.show();
                 expandedWave = waveId;
             }
@@ -663,6 +816,19 @@
                 $(`#orders-${waveId} .order-details`).hide();
                 details.show();
             }
+        }
+
+        // Clear all filters
+        function clearFilters() {
+            $('#filter-wave').val('');
+            $('#filter-order').val('');
+            $('#filter-item').val('');
+            $('#filter-order-type').val('');
+            $('#filter-pick-type').val('');
+            $('#filter-printed').val('');
+            $('#filter-need-approve').val('');
+            $('#filter-unassigned-tasks').val('');
+            applyFilters();
         }
 
         // Apply filters
@@ -696,6 +862,10 @@
             });
 
             renderWaves();
+            // Ensure waves remain visible after filtering
+            filteredWaves.forEach(wave => {
+                toggleWave(wave.waveId);
+            });
         }
 
         // Approve wave
@@ -741,7 +911,6 @@
             $('#popup-wave-id').text(waveId);
             $('#containers-count').text(wave.containers);
             $('#shipping-count').text(wave.shippingLabels);
-            $('#print-wave').prop('checked', true);
             $('#print-containers').prop('checked', true);
             $('#print-shipping').prop('checked', true);
             updateLabelCount();
@@ -764,7 +933,6 @@
         function updateLabelCount() {
             let total = 0;
             const wave = waves.find(w => w.waveId === currentWaveId);
-            if ($('#print-wave').is(':checked')) total += 1;
             if ($('#print-containers').is(':checked')) total += wave.containers;
             if ($('#print-shipping').is(':checked')) total += wave.shippingLabels;
             $('#total-labels').text(total);
@@ -779,7 +947,6 @@
             }
 
             const printTypes = [];
-            if ($('#print-wave').is(':checked')) printTypes.push('Wave Label');
             if ($('#print-containers').is(':checked')) printTypes.push('Container Labels');
             if ($('#print-shipping').is(':checked')) printTypes.push('Shipping Labels');
 
@@ -791,7 +958,6 @@
             const wave = waves.find(w => w.waveId === currentWaveId);
             wave.printed = true;
             renderWaves();
-
             showMessage('Success', `Printed ${printTypes.join(', ')} for wave ${currentWaveId} on ${printer}`, 'success');
             closePopup();
         }
@@ -857,7 +1023,6 @@
             const wave = waves.find(w => w.waveId === currentWaveId);
             wave.printed = true; // Mark wave as printed since at least one order has been printed
             renderWaves();
-
             showMessage('Success', `Printed ${printTypes.join(', ')} for order ${currentOrderId} in wave ${currentWaveId} on ${printer}`, 'success');
             closeOrderPopup();
         }
