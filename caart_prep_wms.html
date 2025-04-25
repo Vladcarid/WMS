@@ -27,17 +27,29 @@
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             margin-bottom: 24px;
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* Organize filters into 3 columns */
             gap: 16px;
             align-items: center;
+        }
+
+        .filters h3 {
+            grid-column: 1 / -1; /* Make the "Filters" header span all columns */
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
         }
 
         .filters label {
             font-size: 14px;
             font-weight: 500;
             color: #4a5568;
-            margin-right: 8px;
+            margin-bottom: 4px;
         }
 
         .filters input, .filters select {
@@ -102,13 +114,17 @@
             color: #1a202c;
         }
 
+        .wave-row:nth-child(even) {
+            background-color: #f9fafb; /* Zebra striping: shade every other row */
+        }
+
         .wave-row {
             cursor: pointer;
             transition: background-color 0.2s;
         }
 
         .wave-row:hover {
-            background-color: #f7fafc;
+            background-color: #e6f0fa;
         }
 
         .order-list {
@@ -278,55 +294,71 @@
     </style>
 </head>
 <body>
-    <!-- Message Area (Moved to Top) -->
+    <!-- Message Area -->
     <div id="message-area" class="message-area"></div>
 
     <h1>Cart Prep - Wave Management</h1>
 
     <!-- Filters Area -->
     <div class="filters">
-        <h3 style="font-size: 18px; font-weight: 600; margin: 0 16px 0 0;">Filters</h3>
-        <label>Wave#: <input type="text" id="filter-wave" onkeyup="applyFilters()"></label>
-        <label>Order#: <input type="text" id="filter-order" onkeyup="applyFilters()"></label>
-        <label>Item: <input type="text" id="filter-item" onkeyup="applyFilters()"></label>
-        <label>Order Type: 
+        <h3>Filters</h3>
+        <div class="filter-group">
+            <label>Wave#:</label>
+            <input type="text" id="filter-wave" onkeyup="applyFilters()">
+        </div>
+        <div class="filter-group">
+            <label>Order#:</label>
+            <input type="text" id="filter-order" onkeyup="applyFilters()">
+        </div>
+        <div class="filter-group">
+            <label>Item:</label>
+            <input type="text" id="filter-item" onkeyup="applyFilters()">
+        </div>
+        <div class="filter-group">
+            <label>Order Type:</label>
             <select id="filter-order-type" onchange="applyFilters()">
                 <option value="">All</option>
                 <option value="XBAGSL">XBAGSL</option>
                 <option value="PBRPSMSLEC">PBRPSMSLEC</option>
                 <option value="STANDARD">STANDARD</option>
             </select>
-        </label>
-        <label>Pick Type: 
+        </div>
+        <div class="filter-group">
+            <label>Pick Type:</label>
             <select id="filter-pick-type" onchange="applyFilters()">
                 <option value="">All</option>
                 <option value="PB">PB</option>
                 <option value="MX">MX</option>
                 <option value="SINGLE">SINGLE</option>
             </select>
-        </label>
-        <label>Printed: 
+        </div>
+        <div class="filter-group">
+            <label>Printed:</label>
             <select id="filter-printed" onchange="applyFilters()">
                 <option value="">All</option>
                 <option value="yes">Yes</option>
                 <option value="no">No</option>
             </select>
-        </label>
-        <label>Need Approve: 
+        </div>
+        <div class="filter-group">
+            <label>Need Approve:</label>
             <select id="filter-need-approve" onchange="applyFilters()">
                 <option value="">All</option>
                 <option value="yes">Yes</option>
                 <option value="no">No</option>
             </select>
-        </label>
-        <label>Unassigned Tasks: 
+        </div>
+        <div class="filter-group">
+            <label>Unassigned Tasks:</label>
             <select id="filter-unassigned-tasks" onchange="applyFilters()">
                 <option value="">All</option>
                 <option value="yes">Yes</option>
                 <option value="no">No</option>
             </select>
-        </label>
-        <button onclick="clearFilters()">Clear All</button>
+        </div>
+        <div class="filter-group">
+            <button onclick="clearFilters()">Clear All</button>
+        </div>
     </div>
 
     <!-- Wave Table -->
@@ -688,7 +720,6 @@
         // Initialize the page
         $(document).ready(function() {
             renderWaves();
-            // Ensure waves are visible by default
             filteredWaves.forEach(wave => {
                 toggleWave(wave.waveId);
             });
@@ -862,7 +893,6 @@
             });
 
             renderWaves();
-            // Ensure waves remain visible after filtering
             filteredWaves.forEach(wave => {
                 toggleWave(wave.waveId);
             });
@@ -998,8 +1028,8 @@
         // Update label count in order print popup
         function updateOrderLabelCount() {
             let total = 0;
-            if ($('#order-print-container').is(':checked')) total += 1; // 1 container label per order
-            if ($('#order-print-shipping').is(':checked')) total += 1; // 1 shipping label per order
+            if ($('#order-print-container').is(':checked')) total += 1;
+            if ($('#order-print-shipping').is(':checked')) total += 1;
             $('#order-total-labels').text(total);
         }
 
@@ -1021,7 +1051,7 @@
             }
 
             const wave = waves.find(w => w.waveId === currentWaveId);
-            wave.printed = true; // Mark wave as printed since at least one order has been printed
+            wave.printed = true;
             renderWaves();
             showMessage('Success', `Printed ${printTypes.join(', ')} for order ${currentOrderId} in wave ${currentWaveId} on ${printer}`, 'success');
             closeOrderPopup();
